@@ -4,6 +4,15 @@ version = "0.1.0"
 authors = ["Martin Holzhauer <martin@holzhauer.eu>"]
 edition = "2018"
 
+license = "MIT"
+license-file = "LICENSE"
+
+keywords = ["timew", "timewarrior"]
+categories = ["parsing"]
+maintenance = { status = "experimental" }
+
+description = "a simple library to read timewarrior data files"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
