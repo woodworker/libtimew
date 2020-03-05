@@ -1,6 +1,6 @@
 [package]
 name = "libtimew"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Martin Holzhauer <martin@holzhauer.eu>"]
 edition = "2018"
 
