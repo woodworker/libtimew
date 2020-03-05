@@ -127,7 +127,6 @@ impl FromStr for TimeWarriorLine {
                     tag_string.push(c);
                 }
             }
-            println!("{}", one_char);
         }
         if tag_string != "" {
             tags.push(tag_string);
