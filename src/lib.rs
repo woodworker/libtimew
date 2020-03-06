@@ -97,9 +97,15 @@ impl FromStr for TimeWarriorLine {
                 (utc)
             }
             // no enddate and no tags
-            _ => {
+            None => {
                 active = true;
                 Utc::now()
+            }
+            // everything else is an error
+            e => {
+                return Err(TimeWarriorLineError::Generic(
+                    format!("Unexpected {:?}", e).to_owned(),
+                ));
             }
         };
 
@@ -157,7 +163,78 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_only_started_no_tags() {
+    fn garbage_in_err_out() {
+        let result = TimeWarriorLine::from_str("afdf dafdf dsfads fdsaf");
+        assert_eq!(
+            result.is_err(),
+            true,
+            "line should not be parsed as ok result"
+        );
+    }
+
+    #[test]
+    fn only_z_is_valid_timezone_definition() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055CEST");
+        assert_eq!(
+            result.is_err(),
+            true,
+            "CEST line should not be parsed as ok result"
+        );
+    }
+
+    #[test]
+    fn only_broken_lines_1() {
+        let result = TimeWarriorLine::from_str("inc");
+        assert_eq!(
+            result.is_err(),
+            true,
+            "line should not be parsed as ok result"
+        );
+    }
+
+    #[test]
+    fn only_broken_lines_2() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z - sdsadsad");
+        assert_eq!(
+            result.is_err(),
+            true,
+            "line should not be parsed as ok result"
+        );
+    }
+
+    #[test]
+    fn only_broken_lines_3() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z sadasds");
+        assert_eq!(
+            result.is_err(),
+            true,
+            "line should not be parsed as ok result"
+        );
+    }
+
+    #[test]
+    fn only_broken_lines_4() {
+        let result =
+            TimeWarriorLine::from_str("inc 20001011T133055Z - 20001011T183055Z dsafsadsads");
+        assert_eq!(
+            result.is_err(),
+            true,
+            "line should not be parsed as ok result"
+        );
+    }
+
+    #[test]
+    fn only_broken_lines_5() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z - ");
+        assert_eq!(
+            result.is_err(),
+            true,
+            "line should not be parsed as ok result"
+        );
+    }
+
+    #[test]
+    fn only_started_no_tags() {
         let result = TimeWarriorLine::from_str("inc 20001011T133055Z");
         assert_eq!(result.is_ok(), true, "parsed line is not a ok result");
 
@@ -174,7 +251,24 @@ mod tests {
     }
 
     #[test]
-    fn test_only_start_and_enddate_no_tags() {
+    fn only_started_one_tag() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z # Walala");
+        assert_eq!(result.is_ok(), true, "parsed line is not a ok result");
+
+        let line = result.unwrap();
+
+        assert_eq!(line.tw_type, "inc");
+        assert_eq!(line.active, true);
+        assert_eq!(line.tags, vec!["Walala"]);
+
+        assert_eq!(line.full_tag(), "Walala".to_owned());
+
+        assert_eq!(line.from.format("%Y-%m-%d").to_string(), "2000-10-11");
+        assert_eq!(line.from.format("%H:%M:%S").to_string(), "13:30:55");
+    }
+
+    #[test]
+    fn only_start_and_enddate_no_tags() {
         let result = TimeWarriorLine::from_str("inc 20001011T133055Z - 20001112T144054Z");
         assert_eq!(
             result.is_ok(),
@@ -199,7 +293,62 @@ mod tests {
     }
 
     #[test]
-    fn test_tags_with_spaces() {
+    fn duration_is_correct() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z - 20001011T134055Z");
+        assert_eq!(
+            result.is_ok(),
+            true,
+            "parsed line is not a ok result {:?}",
+            result
+        );
+
+        let line = result.unwrap();
+
+        assert_eq!(line.duration(), chrono::Duration::minutes(10));
+    }
+
+    #[test]
+    fn date_is_correct() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z - 20001011T134055Z");
+        assert_eq!(
+            result.is_ok(),
+            true,
+            "parsed line is not a ok result {:?}",
+            result
+        );
+
+        let line = result.unwrap();
+
+        assert_eq!(line.get_day(), chrono::Utc.ymd(2000, 10, 11));
+    }
+
+    #[test]
+    fn only_start_and_enddate_one_taga() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z - 20001112T144054Z # Buvere");
+        assert_eq!(
+            result.is_ok(),
+            true,
+            "parsed line is not a ok result {:?}",
+            result
+        );
+
+        let line = result.unwrap();
+
+        assert_eq!(line.tw_type, "inc");
+        assert_eq!(line.active, false);
+        assert_eq!(line.tags, vec!["Buvere"]);
+
+        assert_eq!(line.full_tag(), "Buvere".to_owned());
+
+        assert_eq!(line.from.format("%Y-%m-%d").to_string(), "2000-10-11");
+        assert_eq!(line.from.format("%H:%M:%S").to_string(), "13:30:55");
+
+        assert_eq!(line.until.format("%Y-%m-%d").to_string(), "2000-11-12");
+        assert_eq!(line.until.format("%H:%M:%S").to_string(), "14:40:54");
+    }
+
+    #[test]
+    fn tags_with_spaces_are_recognized() {
         let result = TimeWarriorLine::from_str(
             "inc 20001011T133055Z - 20001112T144054Z # \"ABC CDE\" EFG HIJ",
         );
@@ -215,6 +364,8 @@ mod tests {
         assert_eq!(line.tw_type, "inc");
         assert_eq!(line.active, false);
         assert_eq!(line.tags, vec!["ABC CDE", "EFG", "HIJ"]);
+
+        // assert_eq!(line.full_tag(), "\"ABC CDE\" EFG HIJ".to_owned());
 
         assert_eq!(line.tags.len(), 3);
     }
