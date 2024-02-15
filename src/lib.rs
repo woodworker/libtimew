@@ -20,6 +20,12 @@ impl TimeWarriorLine {
         self.tags.join(" ")
     }
 
+    //fix: use of deprecated struct `chrono::Date`: use `chrono::NaiveDate` instead
+    pub fn get_day_naive(&self) -> NaiveDate {
+        self.from.date_naive()
+    }
+
+    #[deprecated(since = "0.1.4", note = "please use `get_day_naive` instead")]
     pub fn get_day(&self) -> Date<Utc> {
         self.from.date()
     }
@@ -306,6 +312,24 @@ mod tests {
         let line = result.unwrap();
 
         assert_eq!(line.duration(), chrono::Duration::minutes(10));
+    }
+
+    #[test]
+    fn date_naive_is_correct() {
+        let result = TimeWarriorLine::from_str("inc 20001011T133055Z - 20001011T134055Z");
+        assert_eq!(
+            result.is_ok(),
+            true,
+            "parsed line is not a ok result {:?}",
+            result
+        );
+
+        let line = result.unwrap();
+
+        assert_eq!(
+            line.get_day_naive(),
+            chrono::NaiveDate::from_ymd_opt(2000, 10, 11).expect("Invalid date")
+        );
     }
 
     #[test]
