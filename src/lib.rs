@@ -52,7 +52,7 @@ impl FromStr for TimeWarriorLine {
                         return Err(TimeWarriorLineError::NoDate());
                     }
                 };
-                (f)
+                f
             }
             _ => {
                 return Err(TimeWarriorLineError::NoDate());
@@ -88,13 +88,13 @@ impl FromStr for TimeWarriorLine {
                                 ));
                             }
                         };
-                        (f)
+                        f
                     }
                     None => {
                         return Err(TimeWarriorLineError::Generic("nope".to_owned()));
                     }
                 };
-                (utc)
+                utc
             }
             // no enddate and no tags
             None => {
@@ -155,7 +155,7 @@ fn parse_date(date_string: String) -> Option<DateTime<Utc>> {
         Ok(a) => Utc.from_local_datetime(&a.naive_local()).single(),
         Err(_) => None,
     };
-    (date)
+    date
 }
 
 #[cfg(test)]
