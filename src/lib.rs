@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use std::str::FromStr;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct TimeWarriorLine {
     tw_type: String,
     from: DateTime<Utc>,
