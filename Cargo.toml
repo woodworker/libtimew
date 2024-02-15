@@ -8,9 +8,11 @@ license = "MIT"
 
 keywords = ["timew", "timewarrior"]
 categories = ["parsing"]
-maintenance = { status = "experimental" }
 
 description = "a simple library to read timewarrior data files"
+
+[badges]
+maintenance = { status = "experimental" }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
